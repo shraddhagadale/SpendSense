@@ -96,7 +96,6 @@ def get_biggest_transactions(conn, month, limit=5):
 
 
 
-
 if __name__ == "__main__":
     
     import_to_db()
@@ -122,12 +121,10 @@ if __name__ == "__main__":
 
     print(f"\nAnalyzing month: {current_month}")
 
-    
-    # Monthly totals accross all months
-    monthly_totals = get_monthly_totals(conn)
-    print("\nMonthly totals:")
-    for month, total in monthly_totals:
-        print(f"{month}:{total}")
+    # Total spent in the selected month (from raw transactions)
+    month_txns = get_transactions_for_month(conn, current_month)
+    selected_total = sum(txn[2] for txn in month_txns)
+    print(f"\nTotal spent in {current_month}: {selected_total:.2f}")
 
     # Category totals for the selected month
     cat_totals = get_category_totals_for_month(conn, current_month)
