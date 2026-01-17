@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Local secrets (DO NOT COMMIT)
+secrets/
+
+# Local data / artifacts
+spendsense.db
+
+# Virtual env
+venv/

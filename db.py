@@ -17,8 +17,8 @@ def get_db_connections():
             amount REAL NOT NULL,
             category TEXT,
             imported_at TEXT NOT NULL,
-            UNIQUE(date,description,amount,description)
-        )
+            UNIQUE(date,description,amount)
+        );
         """
     )
     conn.commit()

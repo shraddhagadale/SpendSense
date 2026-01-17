@@ -1,8 +1,8 @@
 import csv
 
-def load_transactions():
+def load_transactions(filename="data/categorized_transactions.csv"):
     transactions = []
-    with open("data/categorized_transactions.csv", newline="") as f:
+    with open(filename, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             tx = {
