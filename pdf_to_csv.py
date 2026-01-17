@@ -123,7 +123,8 @@ import os
 
 def main():
     pdf_path = "data/credit_card_statement-2.pdf"
-    csv_path = "data/output.csv"
+    # Keep this consistent with categorize_all.py input_file to avoid manual renaming.
+    csv_path = "data/credit_card_statements.csv"
 
     lines = read_pdf_lines(pdf_path)
     records = combine_wrapped_transactions(lines)

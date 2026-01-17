@@ -1,14 +1,14 @@
 import sqlite3
 from datetime import datetime, UTC
 from db import get_db_connections
-from transactions_loader import load_transactions
 from llm_client import LLMAssistant
+from spendsense.transactions_io import load_transactions_csv
 
 
 def import_to_db():
     conn = get_db_connections()
     cursor = conn.cursor()
-    transactions = load_transactions()
+    transactions = load_transactions_csv("data/categorized_transactions.csv")
     imported_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
     
 
