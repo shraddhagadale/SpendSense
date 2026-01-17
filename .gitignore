@@ -7,6 +7,7 @@ secrets/
 
 # Local data / artifacts
 spendsense.db
+data/
 
 # Virtual env
 venv/
