@@ -14,8 +14,6 @@ DATE_LINE = re.compile(
     re.VERBOSE,
 )
 # Pattern to pull date, description, amount from the *combined* line
-# Example combined line:
-# "11/01/25 ABC*NATIONAL INSTITUTE F INDIANAPOLIS IN 317-274-3432 $39.50"
 TXN_PATTERN = re.compile(
     r"^\s*(\d{2}/\d{2}/\d{2})\s+(.+?)\s+(-?\$?\d+\.\d{2})\s*$"
 )
@@ -119,27 +117,31 @@ def write_csv(transactions: list[dict], csv_path: str) -> None:
         writer.writerows(transactions)
 
 
-import os
-
 def main():
+    # CLI polish: keep output minimal and consistent by default.
+    # If you ever need deep debugging, flip DEBUG = True.
+    DEBUG = False
+
     pdf_path = "data/credit_card_statement-2.pdf"
-    # Keep this consistent with categorize_all.py input_file to avoid manual renaming.
     csv_path = "data/credit_card_statements.csv"
 
     lines = read_pdf_lines(pdf_path)
     records = combine_wrapped_transactions(lines)
 
-    print("Combined records:")
-    for r in records:
-        print(">>>", r)
+    if DEBUG:
+        print("Combined records:")
+        for r in records:
+            print(">>>", r)
 
     transactions = parse_transactions(records)
-    print("Parsed transactions:", len(transactions))
-    for t in transactions:
-        print(t)
+    if DEBUG:
+        print("Parsed transactions:", len(transactions))
+        for t in transactions:
+            print(t)
 
     write_csv(transactions, csv_path)
-    print(f"Wrote {len(transactions)} transactions to {csv_path}")
+    print(f"Extracted {len(transactions)} transactions from {pdf_path}")
+    print(f"Wrote CSV to: {csv_path}")
 
 
 

@@ -1,7 +1,6 @@
 import sqlite3
 from datetime import datetime, UTC
 from db import get_db_connections
-from llm_client import LLMAssistant
 from spendsense.transactions_io import load_transactions_csv
 
 
@@ -103,7 +102,12 @@ if __name__ == "__main__":
     
     # Print available months
     months = get_months(conn)
-    print("Available months:", months)
+    if not months:
+        print("No data found in DB. Run categorize_all.py first, then re-run analytics.py.")
+        conn.close()
+        raise SystemExit(1)
+
+    print("\nAvailable months:")
 
     for idx, m in enumerate(months, start=1):
         print(f"{idx}. {m}")
@@ -124,42 +128,28 @@ if __name__ == "__main__":
     # Total spent in the selected month (from raw transactions)
     month_txns = get_transactions_for_month(conn, current_month)
     selected_total = sum(txn[2] for txn in month_txns)
-    print(f"\nTotal spent in {current_month}: {selected_total:.2f}")
+    print(f"Total spent: {selected_total:.2f}")
+    print(f"Transactions: {len(month_txns)}")
 
     # Category totals for the selected month
     cat_totals = get_category_totals_for_month(conn, current_month)
-    print(f"\nCategory totals for {current_month}:")
-    for category,total in cat_totals:
-        print(f"{category}:{total}")
+    print("\nCategory totals:")
+    if cat_totals:
+        name_width = max(len(str(c[0] or "")) for c in cat_totals)
+        for category, total in cat_totals:
+            pct = (total / selected_total * 100) if selected_total else 0
+            print(f"- {category:<{name_width}}  {total:>10.2f}  ({pct:>5.1f}%)")
+    else:
+        print("- (no categories found)")
 
     ## Biggest transactions for the selected month
     top_txns = get_biggest_transactions(conn, current_month, limit=5)
-    print(f"\nTop 5 transactions in {current_month}:")
+    print("\nTop 5 transactions:")
     for date, desc, amount, category in top_txns:
         print(f"{date} | {category} | {amount:.2f} | {desc}")
     
 
-    totals = get_category_totals_for_month(conn, current_month)
     conn.close()
-
-    lines = [f"{category}: {total:.2f}" for category, total in totals]
-
-    summary_text = "\n".join(lines)
-    print(summary_text)  # optional: check formatting
-
-    assistant = LLMAssistant()
-
-    prompt = (
-        f"Here is the spending per category for {current_month} "
-        "(amounts are in your local currency):\n\n"
-        f"{summary_text}\n\n"
-        "Give a short analysis and 3 concrete suggestions to improve this budget. "
-        "Respond in bullet points."
-    )
-
-    response = assistant.ask(prompt)
-    print("\nLLM analysis:\n")
-    print(response)
 
 
 
