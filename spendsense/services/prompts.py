@@ -1,7 +1,22 @@
-def build_category_prompt(description: str, amount: float, categories: list[str]) -> str:
+"""LLM prompt templates."""
+from spendsense.core import CATEGORIES
+
+
+def build_category_prompt(description: str, amount: float, categories: list[str] | None = None) -> str:
     """
-    Build a strict classification prompt that returns EXACTLY one category from `categories`.
+    Build a strict classification prompt for transaction categorization.
+    
+    Args:
+        description: Transaction description
+        amount: Transaction amount
+        categories: List of allowed categories (defaults to CATEGORIES)
+    
+    Returns:
+        Formatted prompt string
     """
+    if categories is None:
+        categories = CATEGORIES
+    
     return f"""You are categorizing credit-card transactions into EXACTLY ONE category.
 
 Allowed categories (return EXACTLY one of these, spelled exactly):
@@ -36,4 +51,3 @@ Now categorize this transaction. Return ONLY the category name.
 Description: {description}
 Amount: {amount}
 Category:"""
-

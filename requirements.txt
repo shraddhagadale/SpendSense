@@ -1,0 +1,13 @@
+# PDF parsing
+pypdf>=6.0.0
+
+# Database
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# HTTP requests (for LLM client)
+requests>=2.31.0

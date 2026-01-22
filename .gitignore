@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 
 # Local secrets (DO NOT COMMIT)
-secrets/
+.env
 
 # Local data / artifacts
 spendsense.db

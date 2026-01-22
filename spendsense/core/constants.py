@@ -1,8 +1,11 @@
 """
-Categories used throughout SpendSense.
+Domain constants for SpendSense.
 
-This is the single source of truth for category names (CSV, prompts, analytics).
-Keep these strings stable.
+Single source of truth for category names used across:
+- CSV exports
+- LLM prompts  
+- Analytics
+- Database
 """
 
 CATEGORIES = [
@@ -17,4 +20,3 @@ CATEGORIES = [
     "Health",
     "Others",
 ]
-
