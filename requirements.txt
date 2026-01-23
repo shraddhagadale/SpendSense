@@ -1,6 +1,12 @@
 # PDF parsing
 pypdf>=6.0.0
 
+# OCR for scanned PDFs
+ocrmypdf>=15.0.0  # Adds searchable text layer to scanned PDFs (uses Tesseract)
+pytesseract>=0.3.10  # Direct Tesseract wrapper for confidence scoring
+pillow>=10.0.0  # Image processing
+pdf2image>=1.16.0  # PDF to image conversion
+
 # Database
 psycopg2-binary>=2.9.9
 sqlalchemy>=2.0.0

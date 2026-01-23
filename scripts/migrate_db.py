@@ -22,7 +22,12 @@ from pathlib import Path
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
-from config import get_database_url, SQLITE_PATH, DB_TYPE
+from spendsense.config.settings import settings
+
+# For backward compatibility with old variable names
+get_database_url = lambda: settings.database_url
+SQLITE_PATH = settings.SQLITE_PATH
+DB_TYPE = settings.DB_TYPE
 from spendsense.utils import compute_dedupe_hash, clean_merchant_name
 
 BATCH_SIZE = 100
