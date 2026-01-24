@@ -75,7 +75,7 @@ def process_and_categorize_pdf(
     print(f"Parsed {len(transactions)} transactions")
     
     if not transactions:
-        print("\n⚠️  No transactions found in PDF!")
+        print("\nNo transactions found in PDF!")
         sys.exit(1)
     
     # Step 4: Categorize transactions using LLM
@@ -151,20 +151,22 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Process a PDF and auto-generate output filename
-  python scripts/process_and_categorize.py data/statement.pdf
+  # Process a PDF with auto-generated output filename
+  python scripts/process_and_categorize.py --input data/statement.pdf
   
   # Process with custom output path
-  python scripts/process_and_categorize.py data/statement.pdf --output data/my_transactions.csv
+  python scripts/process_and_categorize.py --input data/statement.pdf --output data/my_transactions.csv
   
   # Skip OCR (for text-based PDFs only)
-  python scripts/process_and_categorize.py data/statement.pdf --no-ocr
+  python scripts/process_and_categorize.py --input data/statement.pdf --no-ocr
         """,
     )
     
     parser.add_argument(
-        "pdf_path",
+        "-i", "--input",
+        required=True,
         help="Path to the PDF credit card statement",
+        dest="pdf_path",
     )
     
     parser.add_argument(
