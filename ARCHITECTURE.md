@@ -6,66 +6,136 @@
 SpendSense/
 │
 ├── 📄 README.md                    # Project documentation
+├── 📄 ARCHITECTURE.md              # Detailed architecture documentation
+├── 📄 pyproject.toml               # Package configuration (PEP 518)
 ├── 📄 requirements.txt             # Python dependencies
-├── 📄 pyproject.toml              # Package configuration
-├── 📄 .env                        # Environment variables (API keys, DB config)
-├── 📄 .gitignore                  # Git ignore rules
+├── 📄 alembic.ini                  # Database migration configuration
+├── 📄 .env                         # Environment variables (not in git)
+├── 📄 .gitignore                   # Git ignore rules
+├── 📄 spendsense.db                # SQLite database
 │
-├── 📁 spendsense/                 # 🎯 MAIN PACKAGE (reusable code)
+├── 📁 spendsense/                  # 🎯 MAIN PACKAGE (reusable code)
 │   ├── __init__.py
 │   │
-│   ├── 📁 services/               # Business logic services
-│   │   ├── ocr.py                # OCR utilities (detect & process scanned PDFs)
-│   │   ├── pdf_processor.py      # PDF processing logic (extract transactions)
-│   │   ├── llm.py                # LLM client (OpenAI API)
-│   │   └── prompts.py            # Prompt templates for LLM
+│   ├── 📁 services/                # Business logic services
+│   │   ├── __init__.py
+│   │   ├── ocr.py                  # OCR utilities (detect & process scanned PDFs)
+│   │   ├── pdf_processor.py        # PDF processing logic (extract transactions)
+│   │   ├── llm.py                  # LLM client (OpenAI API)
+│   │   └── prompts.py              # Prompt templates for LLM
 │   │
-│   ├── 📁 models/                 # Database models (SQLAlchemy)
-│   │   ├── base.py               # Base model class
-│   │   ├── transaction.py        # Transaction model
-│   │   └── statement.py          # Statement model
+│   ├── 📁 models/                  # Database models (SQLAlchemy)
+│   │   ├── __init__.py
+│   │   ├── base.py                 # Base model class
+│   │   ├── transaction.py          # Transaction model
+│   │   └── statement.py            # Statement model
 │   │
-│   ├── 📁 db/                     # Database utilities
-│   │   ├── session.py            # Database session management
-│   │   └── repository.py         # Data access layer
+│   ├── 📁 db/                      # Database utilities
+│   │   ├── __init__.py
+│   │   ├── session.py              # Database session management
+│   │   └── repository.py           # Data access layer
 │   │
-│   ├── 📁 io/                     # Input/Output utilities
-│   │   └── csv.py                # CSV reading/writing
+│   ├── 📁 io/                      # Input/Output utilities
+│   │   ├── __init__.py
+│   │   └── csv.py                  # CSV reading/writing
 │   │
-│   ├── 📁 config/                 # Configuration
-│   │   └── settings.py           # App settings (from .env)
+│   ├── 📁 config/                  # Configuration
+│   │   ├── __init__.py
+│   │   └── settings.py             # App settings (reads from .env)
 │   │
-│   └── 📁 utils/                  # Helper utilities
-│       ├── dates.py              # Date utilities
-│       ├── hashing.py            # Hashing utilities
-│       └── merchant.py           # Merchant name cleaning
+│   ├── 📁 core/                    # Core utilities
+│   │   ├── __init__.py
+│   │   └── constants.py            # Application constants
+│   │
+│   └── 📁 utils/                   # Helper utilities
+│       ├── __init__.py
+│       ├── dates.py                # Date utilities
+│       ├── hashing.py              # Hashing utilities
+│       └── merchant.py             # Merchant name cleaning
 │
-├── 📁 scripts/                    # 🚀 EXECUTABLE SCRIPTS (what you run)
-│   ├── README.md                 # Scripts documentation
-│   ├── process_pdf.py            # Extract transactions from PDF
-│   ├── categorize.py             # Categorize transactions with LLM
-│   ├── analytics.py              # Analyze spending patterns
-│   └── migrate_db.py             # Migrate SQLite → PostgreSQL
-│
-├── 📁 tests/                      # 🧪 TESTS
+├── 📁 scripts/                     # 🚀 EXECUTABLE SCRIPTS (what you run)
 │   ├── __init__.py
-│   ├── test_ocr.py               # OCR functionality tests
-│   └── test_pdf_processor.py     # PDF processor tests
+│   ├── process_and_categorize.py   # 🎯 ONE-STEP: PDF → Categorized CSV
+│   ├── process_pdf.py              # Extract transactions from PDF
+│   ├── categorize.py               # Categorize transactions with LLM
+│   ├── analytics.py                # Analyze spending patterns
+│   └── migrate_db.py               # Migrate SQLite → PostgreSQL
 │
-├── 📁 alembic/                    # Database migrations
-│   ├── versions/                 # Migration scripts
-│   └── env.py                    # Alembic config
+├── 📁 tests/                       # 🧪 TESTS
+│   ├── __init__.py
+│   └── test_ocr.py                 # OCR functionality tests
 │
-└── 📁 data/                       # 📊 DATA FILES
-    ├── *.pdf                     # Input PDFs
-    └── *.csv                     # Output CSVs
+├── 📁 alembic/                     # Database migrations
+│   ├── versions/                   # Migration scripts
+│   │   └── ad4bf6697a81_create_statements_and_transactions.py
+│   ├── env.py                      # Alembic environment
+│   ├── script.py.mako              # Migration template
+│   └── README                      # Alembic documentation
+│
+└── 📁 data/                        # 📊 DATA FILES
+    ├── credit_card_statement.pdf           # Input PDF (example)
+    ├── credit_card_statement-2.pdf         # Input PDF (example)
+    ├── credit_card_statements.csv          # Extracted transactions
+    └── categorized_transactions.csv        # Categorized transactions
 ```
 
 ---
 
 ## 🔄 Complete Workflow & Data Flow
 
-### **Workflow 1: PDF Processing**
+### **⚡ Workflow 0: One-Step Processing (RECOMMENDED)**
+
+This is the **fastest and easiest** way to process PDFs. It combines extraction and categorization into a single command.
+
+```
+1. USER places PDF in data/ folder
+   ↓
+2. USER runs: python scripts/process_and_categorize.py data/statement.pdf
+   ↓
+3. scripts/process_and_categorize.py
+   │
+   ├─→ [STEP 1/4] Extract text from PDF
+   │   ├─→ Calls: read_pdf_lines()
+   │   │   ├─→ Uses: spendsense.services.ocr (auto-detect scanned PDFs)
+   │   │   └─→ Uses: PyPDF2.PdfReader (extract text)
+   │   └─→ Returns: List of text lines
+   │
+   ├─→ [STEP 2/4] Combine wrapped transactions
+   │   ├─→ Calls: combine_wrapped_transactions()
+   │   └─→ Returns: List of complete transaction strings
+   │
+   ├─→ [STEP 3/4] Parse transaction details
+   │   ├─→ Calls: parse_transactions()
+   │   └─→ Returns: List of {date, description, amount}
+   │
+   ├─→ [STEP 4/4] Categorize with AI (in real-time)
+   │   ├─→ Uses: spendsense.services.llm.LLMService
+   │   ├─→ Uses: spendsense.services.prompts.build_category_prompt
+   │   ├─→ For each transaction:
+   │   │   ├─→ Build categorization prompt
+   │   │   ├─→ Call OpenAI API
+   │   │   ├─→ Add category to transaction
+   │   │   └─→ Display progress with category
+   │   └─→ Returns: Categorized transactions
+   │
+   └─→ Write to CSV with categories
+   ↓
+4. OUTPUT: data/statement_categorized.csv
+   ✅ Contains: date, description, amount, category (all in one file!)
+```
+
+**Benefits:**
+- ✅ Single command execution
+- ✅ Real-time progress display with categories
+- ✅ No intermediate CSV files
+- ✅ Automatic OCR detection
+- ✅ Category breakdown summary
+
+---
+
+### **🔧 Workflow 1: Multi-Step PDF Processing (Alternative)**
+
+Use this if you want more control or want to process multiple PDFs before categorizing.
 
 ```
 1. USER places PDF in data/ folder

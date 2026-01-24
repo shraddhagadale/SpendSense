@@ -55,6 +55,22 @@ cp .env.example .env
 
 ### Usage
 
+#### 🎯 **One-Step Processing (Recommended)**
+
+Process your PDF and get categorized transactions in a single command:
+
+```bash
+# Process PDF → Extract → Categorize → Output CSV (all in one!)
+python scripts/process_and_categorize.py data/your_statement.pdf
+
+# Or specify custom output path
+python scripts/process_and_categorize.py data/statement.pdf --output data/my_transactions.csv
+```
+
+#### 📋 **Multi-Step Processing (Alternative)**
+
+For more control, use individual scripts:
+
 ```bash
 # 1. Extract transactions from PDF
 python scripts/process_pdf.py
@@ -71,12 +87,26 @@ python scripts/analytics.py
 ## 📖 Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete project structure and flow explanation
-- **[scripts/README.md](scripts/README.md)** - Detailed usage of each script
 - **[OCR Setup Guide](#ocr-setup)** - How to configure OCR for scanned PDFs
 
 ---
 
 ## 🔄 Workflow
+
+### ⚡ **Quick Workflow (One-Step)**
+
+```
+1. Place PDF in data/ folder
+   ↓
+2. Run: python scripts/process_and_categorize.py data/your_statement.pdf
+   → Automatically extracts transactions
+   → Uses OCR for scanned PDFs
+   → Categorizes with AI
+   → Outputs categorized CSV
+   ✅ Done!
+```
+
+### 🔧 **Detailed Workflow (Multi-Step)**
 
 ```
 1. Place PDF in data/ folder
@@ -98,19 +128,20 @@ python scripts/analytics.py
 
 ```
 SpendSense/
-├── spendsense/          # Main package (reusable code)
-│   ├── services/        # Business logic (OCR, PDF processing, LLM)
-│   ├── models/          # Database models
-│   ├── db/              # Database utilities
-│   └── config/          # Configuration
+├── spendsense/                  # Main package (reusable code)
+│   ├── services/                # Business logic (OCR, PDF processing, LLM)
+│   ├── models/                  # Database models
+│   ├── db/                      # Database utilities
+│   └── config/                  # Configuration
 │
-├── scripts/             # Executable scripts
-│   ├── process_pdf.py   # Extract transactions from PDF
-│   ├── categorize.py    # Categorize with AI
-│   └── analytics.py     # View analytics
+├── scripts/                     # Executable scripts
+│   ├── process_and_categorize.py  # 🎯 One-step: PDF → Categorized CSV
+│   ├── process_pdf.py           # Extract transactions from PDF
+│   ├── categorize.py            # Categorize with AI
+│   └── analytics.py             # View analytics
 │
-├── tests/               # Test files
-└── data/                # Input PDFs and output CSVs
+├── tests/                       # Test files
+└── data/                        # Input PDFs and output CSVs
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
@@ -156,7 +187,43 @@ pytest tests/
 
 ## 📊 Example Output
 
-### PDF Processing
+### One-Step Processing (process_and_categorize.py)
+```
+📄 Processing PDF: credit_card_statement.pdf
+============================================================
+
+[1/4] 📖 Extracting text from PDF...
+      ✓ Extracted 9 lines
+
+[2/4] 🔗 Combining wrapped transactions...
+      ✓ Combined into 3 transaction lines
+
+[3/4] 🔍 Parsing transaction details...
+      ✓ Parsed 3 transactions
+
+[4/4] 🤖 Categorizing transactions with AI...
+      [1/3] Others           $   39.50  ABC*NATIONAL INSTITUTE F  INDIANAPOLIS  IN
+      [2/3] Shopping         $    6.41  SP WHITE FOX BOUTIQU  WILMINGTON  DE
+      [3/3] Grocery          $    5.00  AplPay KROGER #339 000000339  INDIANAPOLIS
+
+      ✓ Categorized 3 transactions
+
+============================================================
+✅ Success! Categorized transactions saved to:
+   /path/to/data/credit_card_statement_categorized.csv
+
+📊 Summary:
+   • Total transactions: 3
+   • Categories found: 3
+
+   Category breakdown:
+     - Others                 1 transactions
+     - Shopping               1 transactions
+     - Grocery                1 transactions
+============================================================
+```
+
+### PDF Processing (process_pdf.py)
 ```
 ============================================================
 PDF to CSV Processor
