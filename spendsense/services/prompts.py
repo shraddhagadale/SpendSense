@@ -4,7 +4,7 @@ from spendsense.core import CATEGORIES
 
 def build_category_prompt(description: str, amount: float, categories: list[str] | None = None) -> str:
     """
-    Build a strict classification prompt for transaction categorization.
+    Build a prompt for transaction categorization AND merchant extraction.
     
     Args:
         description: Transaction description
@@ -12,42 +12,53 @@ def build_category_prompt(description: str, amount: float, categories: list[str]
         categories: List of allowed categories (defaults to CATEGORIES)
     
     Returns:
-        Formatted prompt string
+        Formatted prompt string asking for category and merchant
     """
     if categories is None:
         categories = CATEGORIES
     
-    return f"""You are categorizing credit-card transactions into EXACTLY ONE category.
+    return f"""You are analyzing credit-card transactions. For each transaction, extract TWO pieces of information:
+1. Category (from the allowed list)
+2. Merchant name (clean, short business name)
 
-Allowed categories (return EXACTLY one of these, spelled exactly):
+Allowed categories (choose EXACTLY one):
 {categories}
 
-Rules:
+Category Rules:
 - Use the merchant name and context from the description more than the amount.
-- If the description looks like a gas station / fuel purchase, classify as Transport.
-- If the description is groceries / supermarkets, classify as Grocery.
-- If it's a restaurant/cafe/fast-food/delivery purchase, classify as Food.
-- If it's movies/events/games/amusement, classify as Entertainment.
-- If it's rent/lease, classify as Rent.
-- If it's power/water/internet/phone bills, classify as Utilities.
-- If it's shopping/retail/e-commerce (clothes, shoes, electronics, home goods), classify as Shopping.
-- If it's health insurance, pharmacy, medical bills, clinics, etc., classify as Health.
-- If it's streaming/music/cloud/app subscriptions (Netflix, Spotify, Apple/Google subscriptions), classify as Digital Services.
-- If unsure, use Others.
+- Gas stations / fuel purchases → Transport
+- Groceries / supermarkets → Grocery
+- Restaurants/cafes/fast-food/delivery → Food
+- Movies/events/games/amusement → Entertainment
+- Rent/lease → Rent
+- Power/water/internet/phone bills → Utilities
+- Shopping/retail/e-commerce (clothes, electronics, home goods) → Shopping
+- Health insurance, pharmacy, medical bills, clinics → Health
+- Streaming/music/cloud/app subscriptions → Digital Services
+- If unsure → Others
 
-Examples (learn these patterns):
-- "KROGER", "WHOLE FOODS", "TRADER JOE'S", "SAFEWAY" -> Grocery
-- "SPEEDWAY", "SHELL", "BP", "EXXON", "CHEVRON" -> Transport (gas/fuel)
-- "UBER", "LYFT", "METRO", "PARKING" -> Transport
-- "AMC THEATRES", "REGAL", "STEAM", "PLAYSTATION", "XBOX" -> Entertainment
-- "NETFLIX", "SPOTIFY", "HULU", "APPLE.COM/BILL", "GOOGLE *SERVICES", "ICLOUD" -> Digital Services
-- "AMAZON", "AMZN", "LULULEMON", "TARGET", "WALMART", "NIKE" -> Shopping
-- "CVS", "WALGREENS", "UNITED HEALTH", "KAISER", "HOSPITAL", "CLINIC" -> Health
-- "RENT", "APARTMENTS", "PROPERTY MGMT" -> Rent
-- "ELECTRIC", "WATER", "COMCAST", "VERIZON", "AT&T" -> Utilities
+Merchant Extraction Rules:
+- Extract the CORE business name only
+- Remove: payment processors (AplPay, Apple Pay), phone numbers, addresses, store numbers
+- Remove: "USA", "INC", "LLC", state abbreviations, location codes
+- Keep it SHORT and CLEAN (2-3 words max)
 
-Now categorize this transaction. Return ONLY the category name.
+Examples:
+Input: "AplPay KROGER #339 000000339 INDIANAPOLIS IN 3175798309"
+Output: {{"category": "Grocery", "merchant": "Kroger"}}
+
+Input: "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA"
+Output: {{"category": "Shopping", "merchant": "Lululemon"}}
+
+Input: "AplPay SPEEDWAY 1-800-643-1949 OH 3176304925"
+Output: {{"category": "Transport", "merchant": "Speedway"}}
+
+Input: "NETFLIX.COM 1-866-579-7172 CA"
+Output: {{"category": "Digital Services", "merchant": "Netflix"}}
+
+Now analyze this transaction. Return ONLY valid JSON with category and merchant:
 
 Description: {description}
 Amount: {amount}
-Category:"""
+
+JSON:"""

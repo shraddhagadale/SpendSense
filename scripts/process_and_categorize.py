@@ -15,6 +15,7 @@ Example:
 import argparse
 import sys
 import time
+import json
 from pathlib import Path
 from typing import Optional
 from collections import Counter
@@ -91,17 +92,29 @@ def process_and_categorize_pdf(
             description = transaction["description"]
             amount = float(transaction["amount"])  # Convert string to float
             
-            # Build categorization prompt
+            # Build categorization prompt (now asks for category AND merchant)
             prompt = build_category_prompt(description, amount, CATEGORIES)
-            category = llm.ask(prompt)
+            response = llm.ask(prompt)
             
-            # Add category to transaction
+            # Parse JSON response
+            try:
+                # Try to parse as JSON
+                data = json.loads(response)
+                category = data.get("category", "Others")
+                merchant = data.get("merchant", "Unknown")
+            except json.JSONDecodeError:
+                # Fallback: if LLM didn't return JSON, treat as category only
+                category = response.strip()
+                merchant = "Unknown"
+            
+            # Add category and merchant to transaction
             transaction["category"] = category
+            transaction["merchant"] = merchant
             categorized.append(transaction)
             
             # Show progress
             short_desc = (description[:50] + "…") if len(description) > 50 else description
-            print(f"      [{i:>{idx_width}}/{total}] {category:<16} ${amount:>8.2f}  {short_desc}")
+            print(f"      [{i:>{idx_width}}/{total}] {category:<16} {merchant:<20} ${amount:>8.2f}")
             
             # Rate limiting to avoid API throttling
             if i < total:
@@ -113,9 +126,10 @@ def process_and_categorize_pdf(
     except Exception as e:
         print(f"\n⚠️  Categorization failed: {e}")
         print("      Proceeding without categories...")
-        # Add empty category field
+        # Add empty category and merchant fields
         for transaction in transactions:
             transaction["category"] = ""
+            transaction["merchant"] = ""
     
     # Step 5: Write to CSV
     if output_csv is None:

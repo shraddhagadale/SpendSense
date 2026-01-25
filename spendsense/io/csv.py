@@ -10,7 +10,7 @@ def load_transactions_csv(filename: str | Path) -> list[dict]:
     Load transactions from a CSV file.
 
     Required columns: date, description, amount
-    Optional column: category
+    Optional columns: category, merchant
     
     Args:
         filename: Path to CSV file
@@ -27,6 +27,7 @@ def load_transactions_csv(filename: str | Path) -> list[dict]:
                 "description": row["description"],
                 "amount": float(row["amount"]),
                 "category": row.get("category"),
+                "merchant": row.get("merchant"),
             })
     return transactions
 
@@ -39,7 +40,7 @@ def write_transactions_csv(filename: str | Path, transactions: list[dict]) -> No
         filename: Output path
         transactions: List of transaction dictionaries
     """
-    fieldnames = ["date", "description", "amount", "category"]
+    fieldnames = ["date", "description", "amount", "category", "merchant"]
     with open(filename, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

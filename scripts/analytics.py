@@ -22,7 +22,6 @@ from pathlib import Path
 from spendsense.config.settings import settings
 from spendsense.io.csv import load_transactions_csv
 from spendsense.utils.hashing import compute_dedupe_hash
-from spendsense.utils.merchant import clean_merchant_name
 from spendsense.utils.dates import normalize_date
 
 
@@ -48,8 +47,8 @@ def import_to_db():
         description = txn["description"]
         category = txn.get("category", "")
         
-        # Clean merchant name
-        merchant_clean = clean_merchant_name(description)
+        # Get merchant from CSV (LLM-generated)
+        merchant_clean = txn.get("merchant", "Unknown")
         
         # Compute dedupe hash
         dedupe_hash = compute_dedupe_hash(posted_date, amount, description)
@@ -197,8 +196,9 @@ def main():
     top_txns = get_biggest_transactions(conn, current_month, limit=5)
     print("\n🔝 Top 5 transactions:")
     for date, merchant, amount, category in top_txns:
-        merchant_display = (merchant[:50] if merchant else "Unknown")
-        print(f"  {date} | {category:<15} | ${amount:>8.2f} | {merchant_display}")
+        merchant_str = str(merchant) if merchant else "Unknown"
+        merchant_display = merchant_str[:50] if len(merchant_str) > 50 else merchant_str
+        print(f"  {date} | {category:<15} | {merchant_display:<25} | ${amount:>8.2f}")
     
     print("\n" + "=" * 60)
     conn.close()
