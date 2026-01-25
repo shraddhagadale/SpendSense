@@ -17,30 +17,51 @@ What it does:
 
 import sqlite3
 from datetime import datetime, UTC
-from db import get_db_connections
-from spendsense.transactions_io import load_transactions_csv
+from pathlib import Path
+
+from spendsense.config.settings import settings
+from spendsense.io.csv import load_transactions_csv
+from spendsense.utils.hashing import compute_dedupe_hash
+from spendsense.utils.merchant import clean_merchant_name
+from spendsense.utils.dates import normalize_date
+
+
+def get_db_connection():
+    """Get a database connection (SQLite only for now)."""
+    db_path = settings.SQLITE_PATH
+    return sqlite3.connect(db_path)
 
 
 def import_to_db():
-    """Import categorized transactions to database."""
-    conn = get_db_connections()
+    """Import categorized transactions to database with new schema."""
+    conn = get_db_connection()
     cursor = conn.cursor()
-    transactions = load_transactions_csv("data/categorized_transactions.csv")
-    imported_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
     
-
-    cursor.executemany("""
-                       INSERT OR IGNORE INTO transactions(
-                       date,description,amount,category,imported_at)
-                       VALUES(?,?,?,?,?)
-                       """,
-                       [
-                            (
-                               t['date'], t['description'], t['amount'],t['category'],imported_at
-                            )
-                             for t in transactions
-                        ]
-                    )
+    # Load transactions from CSV
+    transactions = load_transactions_csv("data/categorized_transactions.csv")
+    
+    # Transform and insert each transaction
+    for txn in transactions:
+        # Parse date
+        posted_date = normalize_date(txn["date"])
+        amount = abs(float(txn["amount"]))  # Store positive
+        description = txn["description"]
+        category = txn.get("category", "")
+        
+        # Clean merchant name
+        merchant_clean = clean_merchant_name(description)
+        
+        # Compute dedupe hash
+        dedupe_hash = compute_dedupe_hash(posted_date, amount, description)
+        
+        # Insert with conflict handling
+        cursor.execute("""
+            INSERT OR IGNORE INTO transactions(
+                posted_date, amount, description, merchant_clean, category, statement_id, dedupe_hash
+            )
+            VALUES(?, ?, ?, ?, ?, NULL, ?)
+        """, (posted_date, amount, description, merchant_clean, category, dedupe_hash))
+    
     conn.commit()
     conn.close()
 
@@ -61,7 +82,7 @@ def get_months(conn):
     """Get available months in the transactions table."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT DISTINCT substr(date,1,7) AS month
+                    SELECT DISTINCT substr(posted_date,1,7) AS month
                     FROM transactions
                     ORDER BY month
                    """
@@ -73,7 +94,7 @@ def get_monthly_totals(conn):
     """Get monthly total expenses."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT substr(date,1,7) AS month, SUM(amount) AS total
+                    SELECT substr(posted_date,1,7) AS month, SUM(amount) AS total
                     FROM transactions
                    GROUP BY month
                    ORDER BY month
@@ -87,7 +108,7 @@ def get_category_totals_for_month(conn, month):
     cursor.execute("""
                     SELECT category, SUM(amount) AS total
                     FROM transactions
-                    WHERE substr(date,1,7) = ?
+                    WHERE substr(posted_date,1,7) = ?
                     GROUP BY category
                     ORDER BY total DESC
                    """, (month,))
@@ -98,10 +119,10 @@ def get_transactions_for_month(conn, month):
     """Get all transactions for a given month."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT date, description, amount, category
+                    SELECT posted_date, description, amount, category
                     FROM transactions
-                    WHERE substr(date,1,7) = ?
-                    ORDER BY date
+                    WHERE substr(posted_date,1,7) = ?
+                    ORDER BY posted_date
                    """, (month,))
     return [(row[0],row[1],row[2],row[3]) for row in cursor.fetchall()]
 
@@ -110,9 +131,9 @@ def get_biggest_transactions(conn, month, limit=5):
     """Get top biggest transactions for the month."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT date, description, amount, category
+                    SELECT posted_date, merchant_clean, amount, category
                     FROM transactions
-                    WHERE substr(date,1,7) = ?
+                    WHERE substr(posted_date,1,7) = ?
                     ORDER BY ABS(amount) DESC
                     LIMIT 5
                    """, (month,))
@@ -128,7 +149,7 @@ def main():
     # Import data
     print("\nImporting transactions to database...")
     import_to_db()
-    conn = get_db_connections()
+    conn = get_db_connection()
     
     # Print available months
     months = get_months(conn)
@@ -175,8 +196,9 @@ def main():
     # Biggest transactions for the selected month
     top_txns = get_biggest_transactions(conn, current_month, limit=5)
     print("\n🔝 Top 5 transactions:")
-    for date, desc, amount, category in top_txns:
-        print(f"  {date} | {category:<15} | ${amount:>8.2f} | {desc[:50]}")
+    for date, merchant, amount, category in top_txns:
+        merchant_display = (merchant[:50] if merchant else "Unknown")
+        print(f"  {date} | {category:<15} | ${amount:>8.2f} | {merchant_display}")
     
     print("\n" + "=" * 60)
     conn.close()
