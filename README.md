@@ -117,11 +117,13 @@ The AI learns and adapts to your spending patterns.
 
 ### Currently in Development
 
-- ** Interactive Web UI** - Visualizations and dashboards for your spending data
-- **🤖 AI Assistant** - Ask questions about your transactions in natural language
+- ** Interactive Web UI** - Beautiful visualizations and dashboards for your spending data
+- **🤖 AI Assistant** - Ask questions about your transactions and get personalized budgeting advice
   - *"How much did I spend on groceries last month?"*
   - *"Show me all my Starbucks purchases"*
   - *"What's my average monthly spending on transport?"*
+  - *"Should I cut back on dining out? Give me budgeting advice"*
+  - *"Help me create a budget based on my spending patterns"*
 
 ---
 
