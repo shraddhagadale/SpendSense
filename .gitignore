@@ -1,13 +1,75 @@
-.DS_Store
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Local secrets (DO NOT COMMIT)
-.env
-
-# Local data / artifacts
-spendsense.db
-data/
-
-# Virtual env
+# Virtual environments
 venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables (NEVER COMMIT!)
+.env
+.env.local
+.env.*.local
+
+# Database files
+spendsense.db
+spendsense.db-journal
+*.db
+*.db-journal
+
+# Data files (personal/sensitive)
+data/*.pdf
+data/*.csv
+data/*.txt
+
+# Keep example files
+!data/.gitkeep
+!data/README.md
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Alembic
+alembic/versions/*.pyc
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+.temp/
+temp/
