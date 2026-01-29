@@ -124,7 +124,7 @@ def process_and_categorize_pdf(
         print(f"\n      ✓ Categorized {len(transactions)} transactions")
         
     except Exception as e:
-        print(f"\n⚠️  Categorization failed: {e}")
+        print(f"\nCategorization failed: {e}")
         print("      Proceeding without categories...")
         # Add empty category and merchant fields
         for transaction in transactions:
@@ -139,9 +139,9 @@ def process_and_categorize_pdf(
     write_transactions_csv(str(output_path), transactions)
     
     print("\n" + "=" * 60)
-    print(f"✅ Success! Categorized transactions saved to:")
+    print(f"Success! Categorized transactions saved to:")
     print(f"   {output_path.absolute()}")
-    print(f"\n📊 Summary:")
+    print(f"\nSummary:")
     print(f"   • Total transactions: {len(transactions)}")
     
     # Show category breakdown if categorization succeeded
@@ -158,9 +158,9 @@ def process_and_categorize_pdf(
     # Automatically trigger analytics
     try:
         from analytics import run_analytics
-        run_analytics(str(output_path))
+        run_analytics(output_path)
     except Exception as e:
-        print(f"\n⚠️  Automatic analytics failed: {e}")
+        print(f"\nAutomatic analytics failed: {e}")
     
     return str(output_path)
 
@@ -205,7 +205,7 @@ Examples:
             use_ocr=True,
         )
     except Exception as e:
-        print(f"\n❌ Error: {e}", file=sys.stderr)
+        print(f"\nError: {e}", file=sys.stderr)
         sys.exit(1)
 
 

@@ -30,7 +30,7 @@ def get_db_connection():
     return psycopg2.connect(settings.database_url)
 
 
-def import_to_db(csv_path: str):
+def import_to_db(csv_path: Path):
     """Import categorized transactions to database with new schema.
     
     Args:
@@ -133,7 +133,7 @@ def get_biggest_transactions(conn, month, limit=5):
     return cursor.fetchall()
 
 
-def run_analytics(csv_path: str) -> bool:
+def run_analytics(csv_path: Path) -> bool:
     """
     Run analytics on a categorized CSV file.
     
