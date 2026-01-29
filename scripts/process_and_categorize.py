@@ -189,19 +189,13 @@ Examples:
         default=None,
     )
     
-    parser.add_argument(
-        "--no-ocr",
-        action="store_true",
-        help="Disable OCR processing (only use for text-based PDFs)",
-    )
-    
     args = parser.parse_args()
     
     try:
         process_and_categorize_pdf(
             pdf_path=args.pdf_path,
             output_csv=args.output,
-            use_ocr=not args.no_ocr,
+            use_ocr=True,
         )
     except Exception as e:
         print(f"\n❌ Error: {e}", file=sys.stderr)

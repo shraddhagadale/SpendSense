@@ -61,10 +61,6 @@ class Settings:
         return self.PROJECT_ROOT / "spendsense.db"
     
     @property
-    def SECRETS_DIR(self) -> Path:
-        return self.PROJECT_ROOT / "secrets"
-    
-    @property
     def DATA_DIR(self) -> Path:
         return self.PROJECT_ROOT / "data"
     
@@ -85,16 +81,10 @@ class Settings:
     @property
     def openai_api_key(self) -> str:
         """
-        Get OpenAI API key.
-        Priority: env var > secrets file
+        Get OpenAI API key from environment variable.
         """
         if self.OPENAI_API_KEY:
             return self.OPENAI_API_KEY
-        
-        # Fallback to secrets file for backwards compatibility
-        key_file = self.SECRETS_DIR / "openai_api_key.txt"
-        if key_file.exists():
-            return key_file.read_text(encoding="utf-8").strip()
         
         raise RuntimeError(
             "Missing OpenAI API key. Set OPENAI_API_KEY in .env or environment."
