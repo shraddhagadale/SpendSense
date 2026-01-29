@@ -92,8 +92,10 @@ class TransactionRepository:
     
     def get_available_months(self) -> list[str]:
         """Get list of months with transactions (YYYY-MM format)."""
+        # PostgreSQL use to_char, SQLite uses strftime
+        # Since we've moved to Postgres:
         results = self.session.query(
-            func.strftime('%Y-%m', Transaction.posted_date).label('month')
+            func.to_char(Transaction.posted_date, 'YYYY-MM').label('month')
         ).distinct().order_by('month').all()
         return [r.month for r in results]
     

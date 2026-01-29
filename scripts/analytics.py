@@ -15,7 +15,7 @@ What it does:
     5. Shows top transactions for the month
 """
 
-import sqlite3
+import psycopg2
 from datetime import datetime, UTC
 from pathlib import Path
 
@@ -26,39 +26,36 @@ from spendsense.utils.dates import normalize_date
 
 
 def get_db_connection():
-    """Get a database connection (SQLite only for now)."""
-    db_path = settings.SQLITE_PATH
-    return sqlite3.connect(db_path)
+    """Get a database connection to PostgreSQL."""
+    return psycopg2.connect(settings.database_url)
 
 
-def import_to_db():
-    """Import categorized transactions to database with new schema."""
+def import_to_db(csv_path: str):
+    """Import categorized transactions to database with new schema.
+    
+    Args:
+        csv_path: Path to the categorized CSV file
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     
     # Load transactions from CSV
-    transactions = load_transactions_csv("data/categorized_transactions.csv")
+    transactions = load_transactions_csv(csv_path)
+
     
     # Transform and insert each transaction
     for txn in transactions:
-        # Parse date
         posted_date = normalize_date(txn["date"])
-        amount = abs(float(txn["amount"]))  # Store positive
+        amount = float(txn["amount"])
         description = txn["description"]
         category = txn.get("category", "")
-        
-        # Get merchant from CSV (LLM-generated)
         merchant_clean = txn.get("merchant", "Unknown")
-        
-        # Compute dedupe hash
         dedupe_hash = compute_dedupe_hash(posted_date, amount, description)
         
-        # Insert with conflict handling
         cursor.execute("""
-            INSERT OR IGNORE INTO transactions(
-                posted_date, amount, description, merchant_clean, category, statement_id, dedupe_hash
-            )
-            VALUES(?, ?, ?, ?, ?, NULL, ?)
+            INSERT INTO transactions (posted_date, amount, description, merchant_clean, category, statement_id, dedupe_hash)
+            VALUES (%s, %s, %s, %s, %s, NULL, %s)
+            ON CONFLICT (dedupe_hash) DO NOTHING
         """, (posted_date, amount, description, merchant_clean, category, dedupe_hash))
     
     conn.commit()
@@ -81,11 +78,10 @@ def get_months(conn):
     """Get available months in the transactions table."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT DISTINCT substr(posted_date,1,7) AS month
+                    SELECT DISTINCT to_char(posted_date, 'YYYY-MM') AS month
                     FROM transactions
                     ORDER BY month
-                   """
-                )
+                   """)
     return [row[0] for row in cursor.fetchall()]
 
 
@@ -93,24 +89,11 @@ def get_monthly_totals(conn):
     """Get monthly total expenses."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT substr(posted_date,1,7) AS month, SUM(amount) AS total
+                    SELECT to_char(posted_date, 'YYYY-MM') AS month, SUM(amount) AS total
                     FROM transactions
                    GROUP BY month
                    ORDER BY month
                    """)
-    return [(row[0],row[1]) for row in cursor.fetchall()]
-
-
-def get_category_totals_for_month(conn, month):
-    """Get category totals for a specific month."""
-    cursor = conn.cursor()
-    cursor.execute("""
-                    SELECT category, SUM(amount) AS total
-                    FROM transactions
-                    WHERE substr(posted_date,1,7) = ?
-                    GROUP BY category
-                    ORDER BY total DESC
-                   """, (month,))
     return [(row[0],row[1]) for row in cursor.fetchall()]
 
 
@@ -120,10 +103,22 @@ def get_transactions_for_month(conn, month):
     cursor.execute("""
                     SELECT posted_date, description, amount, category
                     FROM transactions
-                    WHERE substr(posted_date,1,7) = ?
+                    WHERE to_char(posted_date, 'YYYY-MM') = %s
                     ORDER BY posted_date
                    """, (month,))
     return [(row[0],row[1],row[2],row[3]) for row in cursor.fetchall()]
+
+def get_category_totals_for_month(conn, month):
+    """Get category totals for a specific month."""
+    cursor = conn.cursor()
+    cursor.execute("""
+                    SELECT category, SUM(amount) AS total
+                    FROM transactions
+                    WHERE to_char(posted_date, 'YYYY-MM') = %s
+                    GROUP BY category
+                    ORDER BY total DESC
+                   """, (month,))
+    return [(row[0],row[1]) for row in cursor.fetchall()]
 
 
 def get_biggest_transactions(conn, month, limit=5):
@@ -132,77 +127,92 @@ def get_biggest_transactions(conn, month, limit=5):
     cursor.execute("""
                     SELECT posted_date, merchant_clean, amount, category
                     FROM transactions
-                    WHERE substr(posted_date,1,7) = ?
+                    WHERE to_char(posted_date, 'YYYY-MM') = %s
                     ORDER BY ABS(amount) DESC
-                    LIMIT 5
-                   """, (month,))
+                    LIMIT %s
+                   """, (month, limit))
     return cursor.fetchall()
 
 
-def main():
-    """Main entry point for analytics."""
-    print("=" * 60)
-    print("Transaction Analytics")
-    print("=" * 60)
+def run_analytics(csv_path: str) -> bool:
+    """
+    Run analytics on a categorized CSV file.
     
-    # Import data
-    print("\nImporting transactions to database...")
-    import_to_db()
-    conn = get_db_connection()
+    This function can be called programmatically by other scripts.
     
-    # Print available months
-    months = get_months(conn)
-    if not months:
-        print("❌ No data found in DB. Run categorize.py first.")
-        conn.close()
-        raise SystemExit(1)
+    Args:
+        csv_path: Path to the categorized CSV file
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        print("=" * 60)
+        print("Transaction Analytics")
+        print("=" * 60)
+        
+        # Import data
+        print("\nImporting transactions to database...")
+        import_to_db(csv_path)
+        conn = get_db_connection()
+        
+        # Print available months
+        months = get_months(conn)
+        if not months:
+            print(" No data found in DB.")
+            conn.close()
+            return False
 
-    print("\n📅 Available months:")
-    for idx, m in enumerate(months, start=1):
-        print(f"  {idx}. {m}")
+        print("\nAvailable months:")
+        for idx, m in enumerate(months, start=1):
+            print(f"  {idx}. {m}")
 
-    choice = input("\nSelect a month by number (default latest): ").strip()
+        choice = input("\nSelect a month by number (default latest): ").strip()
 
-    if choice.isdigit():
-        idx = int(choice)
-        if 1 <= idx <= len(months):
-            current_month = months[idx - 1]
+        if choice.isdigit():
+            idx = int(choice)
+            if 1 <= idx <= len(months):
+                current_month = months[idx - 1]
+            else:
+                current_month = months[-1]
         else:
             current_month = months[-1]
-    else:
-        current_month = months[-1]
 
-    print(f"\n📊 Analyzing month: {current_month}")
-    print("=" * 60)
+        print(f"\nAnalyzing month: {current_month}")
+        print("=" * 60)
 
-    # Total spent in the selected month
-    month_txns = get_transactions_for_month(conn, current_month)
-    selected_total = sum(txn[2] for txn in month_txns)
-    print(f"\n💰 Total spent: ${selected_total:.2f}")
-    print(f"📝 Transactions: {len(month_txns)}")
+        # Total spent in the selected month
+        month_txns = get_transactions_for_month(conn, current_month)
+        selected_total = sum(txn[2] for txn in month_txns)
+        print(f"\n💰 Total spent: ${selected_total:.2f}")
+        print(f"📝 Transactions: {len(month_txns)}")
 
-    # Category totals for the selected month
-    cat_totals = get_category_totals_for_month(conn, current_month)
-    print("\n📂 Category breakdown:")
-    if cat_totals:
-        name_width = max(len(str(c[0] or "")) for c in cat_totals)
-        for category, total in cat_totals:
-            pct = (total / selected_total * 100) if selected_total else 0
-            print(f"  - {category:<{name_width}}  ${total:>10.2f}  ({pct:>5.1f}%)")
-    else:
-        print("  - (no categories found)")
+        # Category totals for the selected month
+        cat_totals = get_category_totals_for_month(conn, current_month)
+        print("\n📂 Category breakdown:")
+        if cat_totals:
+            name_width = max(len(str(c[0] or "")) for c in cat_totals)
+            for category, total in cat_totals:
+                pct = (total / selected_total * 100) if selected_total else 0
+                print(f"  - {category:<{name_width}}  ${total:>10.2f}  ({pct:>5.1f}%)")
+        else:
+            print("  - (no categories found)")
 
-    # Biggest transactions for the selected month
-    top_txns = get_biggest_transactions(conn, current_month, limit=5)
-    print("\n🔝 Top 5 transactions:")
-    for date, merchant, amount, category in top_txns:
-        merchant_str = str(merchant) if merchant else "Unknown"
-        merchant_display = merchant_str[:50] if len(merchant_str) > 50 else merchant_str
-        print(f"  {date} | {category:<15} | {merchant_display:<25} | ${amount:>8.2f}")
-    
-    print("\n" + "=" * 60)
-    conn.close()
+        # Biggest transactions for the selected month
+        top_txns = get_biggest_transactions(conn, current_month, limit=5)
+        print("\n🔝 Top 5 transactions:")
+        for date, merchant, amount, category in top_txns:
+            merchant_str = str(merchant) if merchant else "Unknown"
+            merchant_display = merchant_str[:50] if len(merchant_str) > 50 else merchant_str
+            print(f"  {date} | {category:<15} | {merchant_display:<25} | ${amount:>8.2f}")
+        
+        print("\n" + "=" * 60)
+        conn.close()
+        return True
+        
+    except Exception as e:
+        print(f"\nAnalytics failed: {e}")
+        return False
 
 
-if __name__ == "__main__":
-    main()
+

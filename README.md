@@ -12,7 +12,11 @@ SpendSense automatically processes credit card statement PDFs, categorizes trans
 - AI-powered transaction categorization
 - Merchant name extraction
 - Spending analytics and insights
-- SQLite and PostgreSQL database support
+- PDF transaction extraction with OCR support
+- AI-powered transaction categorization
+- Merchant name extraction
+- Spending analytics and insights
+- Production-grade PostgreSQL database
 - Deduplication and data integrity
 
 ## Installation
@@ -21,6 +25,7 @@ SpendSense automatically processes credit card statement PDFs, categorizes trans
 
 - Python 3.11 or higher
 - Tesseract OCR
+- PostgreSQL
 - OpenAI API key
 
 ### Setup
@@ -29,13 +34,16 @@ SpendSense automatically processes credit card statement PDFs, categorizes trans
 git clone https://github.com/shraddhagadale/SpendSense.git
 cd SpendSense
 
+# Create .env file with your credentials
+# (See Configuration section below)
+
 # Install dependencies
 pip install -r requirements.txt
 pip install -e .
 
-# Install Tesseract
-brew install tesseract  # macOS
-# sudo apt-get install tesseract-ocr  # Linux
+# Initialize the database
+createdb spendsense
+alembic upgrade head
 ```
 
 ### Configuration
@@ -44,22 +52,17 @@ Create a `.env` file:
 
 ```env
 OPENAI_API_KEY=your_api_key
-DB_TYPE=sqlite
-SQLITE_PATH=spendsense.db
+DATABASE_URL=postgresql://user:password@localhost:5432/spendsense
 ```
 
 ## Usage
 
-### Process a Statement
+### Process a Statement and View Analytics
+
+SpendSense is fully automated. Processing a statement will automatically categorize transactions and launch the interactive analytics dashboard.
 
 ```bash
-python scripts/process_and_categorize.py --input file_path
-```
-
-### View Analytics
-
-```bash
-python scripts/analytics.py
+python scripts/process_and_categorize.py --input data/your_statement.pdf
 ```
 
 ## Project Structure

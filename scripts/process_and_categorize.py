@@ -155,6 +155,13 @@ def process_and_categorize_pdf(
     
     print("=" * 60)
     
+    # Automatically trigger analytics
+    try:
+        from analytics import run_analytics
+        run_analytics(str(output_path))
+    except Exception as e:
+        print(f"\n⚠️  Automatic analytics failed: {e}")
+    
     return str(output_path)
 
 

@@ -15,14 +15,6 @@ engine = create_engine(settings.database_url, echo=False)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
-def init_db() -> None:
-    """
-    Initialize database tables.
-    
-    For production, use Alembic migrations instead.
-    This is useful for development/testing.
-    """
-    Base.metadata.create_all(bind=engine)
 
 
 @contextmanager

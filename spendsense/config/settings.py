@@ -41,7 +41,6 @@ class Settings:
     # =========================================================================
     # Database
     # =========================================================================
-    DB_TYPE: str  # "sqlite" or "postgres"
     DATABASE_URL: str
     
     # PostgreSQL individual params (used if DATABASE_URL not set)
@@ -57,10 +56,6 @@ class Settings:
     PROJECT_ROOT: Path = field(default=PROJECT_ROOT)
     
     @property
-    def SQLITE_PATH(self) -> Path:
-        return self.PROJECT_ROOT / "spendsense.db"
-    
-    @property
     def DATA_DIR(self) -> Path:
         return self.PROJECT_ROOT / "data"
     
@@ -70,13 +65,11 @@ class Settings:
     
     @property
     def database_url(self) -> str:
-        """Build database connection URL based on DB_TYPE."""
-        if self.DB_TYPE == "postgres":
-            if self.DATABASE_URL:
-                return self.DATABASE_URL
-            password_part = f":{self.PG_PASSWORD}" if self.PG_PASSWORD else ""
-            return f"postgresql://{self.PG_USER}{password_part}@{self.PG_HOST}:{self.PG_PORT}/{self.PG_DATABASE}"
-        return f"sqlite:///{self.SQLITE_PATH}"
+        """Build database connection URL for PostgreSQL."""
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        password_part = f":{self.PG_PASSWORD}" if self.PG_PASSWORD else ""
+        return f"postgresql://{self.PG_USER}{password_part}@{self.PG_HOST}:{self.PG_PORT}/{self.PG_DATABASE}"
     
     @property
     def openai_api_key(self) -> str:
@@ -102,7 +95,6 @@ def _load_settings() -> Settings:
         OPENAI_TIMEOUT=int(os.getenv("OPENAI_TIMEOUT", "60")),
         
         # Database
-        DB_TYPE=os.getenv("DB_TYPE", "sqlite"),
         DATABASE_URL=os.getenv("DATABASE_URL", ""),
         PG_HOST=os.getenv("PG_HOST", "localhost"),
         PG_PORT=os.getenv("PG_PORT", "5432"),
