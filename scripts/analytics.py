@@ -48,15 +48,14 @@ def import_to_db(csv_path: str):
         posted_date = normalize_date(txn["date"])
         amount = float(txn["amount"])
         description = txn["description"]
-        category = txn.get("category", "")
-        merchant_clean = txn.get("merchant", "Unknown")
+        merchant = txn.get("merchant", "Unknown")
         dedupe_hash = compute_dedupe_hash(posted_date, amount, description)
         
         cursor.execute("""
-            INSERT INTO transactions (posted_date, amount, description, merchant_clean, category, statement_id, dedupe_hash)
+            INSERT INTO transactions (posted_date, amount, description, merchant, category, statement_id, dedupe_hash)
             VALUES (%s, %s, %s, %s, %s, NULL, %s)
             ON CONFLICT (dedupe_hash) DO NOTHING
-        """, (posted_date, amount, description, merchant_clean, category, dedupe_hash))
+        """, (posted_date, amount, description, merchant, category, dedupe_hash))
     
     conn.commit()
     conn.close()
@@ -125,7 +124,7 @@ def get_biggest_transactions(conn, month, limit=5):
     """Get top biggest transactions for the month."""
     cursor = conn.cursor()
     cursor.execute("""
-                    SELECT posted_date, merchant_clean, amount, category
+                    SELECT posted_date, merchant, amount, category
                     FROM transactions
                     WHERE to_char(posted_date, 'YYYY-MM') = %s
                     ORDER BY ABS(amount) DESC

@@ -49,7 +49,7 @@ class TransactionRepository:
         amount: float,
         description: str,
         dedupe_hash: str,
-        merchant_clean: str | None = None,
+        merchant: str | None = None,
         category: str | None = None,
         statement_id: int | None = None,
     ) -> Transaction | None:
@@ -68,7 +68,7 @@ class TransactionRepository:
             posted_date=posted_date,
             amount=abs(amount),
             description=description,
-            merchant_clean=merchant_clean,
+            merchant=merchant,
             category=category,
             statement_id=statement_id,
             dedupe_hash=dedupe_hash,
@@ -122,15 +122,15 @@ class TransactionRepository:
     def get_merchant_totals(self, year: int, month: int) -> list[tuple[str, float]]:
         """Get merchant totals for a given month."""
         results = self.session.query(
-            Transaction.merchant_clean,
+            Transaction.merchant,
             func.sum(Transaction.amount).label('total')
         ).filter(
             extract('year', Transaction.posted_date) == year,
             extract('month', Transaction.posted_date) == month
-        ).group_by(Transaction.merchant_clean).order_by(
+        ).group_by(Transaction.merchant).order_by(
             func.sum(Transaction.amount).desc()
         ).all()
-        return [(r.merchant_clean or "Unknown", r.total) for r in results]
+        return [(r.merchant or "Unknown", r.total) for r in results]
     
     def get_top_transactions(self, year: int, month: int, limit: int = 5) -> list[Transaction]:
         """Get top N transactions by amount for a given month."""

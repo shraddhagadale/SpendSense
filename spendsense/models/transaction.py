@@ -19,7 +19,7 @@ class Transaction(Base):
     - posted_date: For month filtering, trends, comparisons
     - amount: Stored positive for totals, top spends
     - description: Raw statement text for search/debugging
-    - merchant_clean: Cleaned merchant name for grouping
+    - merchant: Cleaned merchant name for grouping
     - category: Assigned category for analytics
     - statement_id: Links to source upload
     - dedupe_hash: Prevents duplicate imports
@@ -30,7 +30,7 @@ class Transaction(Base):
     posted_date: Mapped[date] = mapped_column(Date, nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    merchant_clean: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    merchant: Mapped[str | None] = mapped_column(String(255), nullable=True)
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     statement_id: Mapped[int | None] = mapped_column(
         Integer,
@@ -46,7 +46,7 @@ class Transaction(Base):
     __table_args__ = (
         Index("idx_transactions_posted_date", "posted_date"),
         Index("idx_transactions_category", "category"),
-        Index("idx_transactions_merchant", "merchant_clean"),
+        Index("idx_transactions_merchant", "merchant"),
         Index("idx_transactions_statement", "statement_id"),
     )
 
