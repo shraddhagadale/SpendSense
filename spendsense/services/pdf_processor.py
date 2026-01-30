@@ -2,20 +2,20 @@
 PDF Processing Service
 
 This module handles extraction of transaction data from PDF files.
-Supports both organic (text-based) and scanned (image-based) PDFs.
+All PDFs are converted to images and processed with Tesseract OCR.
 
 Flow:
-1. Read PDF and extract text (with OCR if needed)
-2. Combine multi-line transactions
-3. Parse transactions using regex patterns
-4. Return structured transaction data
+1. Convert PDF pages to images
+2. Extract text using Tesseract
+3. Combine multi-line transactions
+4. Parse transactions using regex patterns
+5. Return structured transaction data
 """
 
 import re
 from pathlib import Path
-from PyPDF2 import PdfReader
 
-from spendsense.services.ocr import is_ocr_available, process_pdf_with_ocr
+from spendsense.services.ocr import extract_text_from_pdf
 
 
 # Pattern: lines that START a transaction (dates like 11/01/25)
@@ -35,52 +35,26 @@ TXN_PATTERN = re.compile(
 )
 
 
-def read_pdf_lines(path: str, use_ocr: bool = True) -> list[str]:
+def read_pdf_lines(path: str) -> list[str]:
     """
     Extract text lines from a PDF file.
     
-    This function intelligently handles both text-based and scanned PDFs:
-    - For text-based PDFs: Extracts text directly (fast)
-    - For scanned PDFs: Uses OCR to add a searchable text layer first
+    Uses Tesseract OCR (via pdf2image) to treat all PDFs as images
+    and extract text. This ensures consistent handling of both
+    digital and scanned PDFs.
     
     Args:
         path: Path to the PDF file
-        use_ocr: If True, automatically use OCR for scanned PDFs
+        use_ocr: Ignored (kept for backward compatibility, OCR is always used)
         
     Returns:
         List of text lines extracted from the PDF
     """
-    pdf_path = Path(path)
-    processed_path = path  # Will be updated if OCR is needed
-    
-    # Step 1: Try OCR if enabled and available
-    if use_ocr and is_ocr_available():
-        try:
-            # process_pdf_with_ocr checks if OCR is needed automatically
-            # It returns the original path if text extraction works,
-            # or a processed (OCR'd) path if scanning was detected
-            processed_path = process_pdf_with_ocr(path)
-        except Exception as e:
-            # If OCR fails, fall back to direct extraction
-            print(f"Warning: OCR processing failed ({e}), attempting direct extraction...")
-            processed_path = path
-    
-    # Step 2: Extract text from PDF (original or OCR'd version)
-    reader = PdfReader(processed_path)
-    all_lines: list[str] = []
+    # Simply extract all text using Tesseract
+    full_text = extract_text_from_pdf(path)
+    all_lines = full_text.splitlines()
 
-    for page in reader.pages:
-        text = page.extract_text() or ""
-        all_lines.extend(text.splitlines())
-
-    # Step 3: Clean up temporary OCR file if one was created
-    if processed_path != path and Path(processed_path).exists():
-        try:
-            Path(processed_path).unlink()
-        except Exception:
-            pass  # Ignore cleanup errors
-
-    # Step 4: Filter to keep only the "New Charges Details" section
+    # Filter to keep only the "New Charges Details" section
     filtered: list[str] = []
     in_details = False
     for line in all_lines:

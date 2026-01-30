@@ -62,7 +62,7 @@ def process_and_categorize_pdf(
     
     # Step 1: Extract text from PDF
     print("\n[1/4] 📖 Extracting text from PDF...")
-    lines = read_pdf_lines(str(pdf_path_obj), use_ocr=use_ocr)
+    lines = read_pdf_lines(str(pdf_path_obj))
     print(f"Extracted {len(lines)} lines")
     
     # Step 2: Combine wrapped transactions

@@ -34,7 +34,9 @@ class Settings:
     # OpenAI / LLM
     # =========================================================================
     OPENAI_API_KEY: str
-    OPENAI_MODEL: str
+    OPENAI_MODEL: str  # Default/fallback model
+    LOW_COST_MODEL: str  # For simple tasks like categorization
+    HIGH_COST_MODEL: str  # For complex tasks (if needed)
     OPENAI_BASE_URL: str
     OPENAI_TIMEOUT: int
     
